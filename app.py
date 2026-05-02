@@ -27,6 +27,10 @@ def get_queue_data():
 def index():
     return render_template('index.html')
 
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
 @app.route('/api/queue', methods=['GET'])
 def api_queue():
     queue_data = get_queue_data()

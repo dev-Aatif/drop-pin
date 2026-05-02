@@ -17,3 +17,7 @@ data/recent.json
 # OS files
 .DS_Store
 Thumbs.db
+
+#txt
+data/titles.txt
+data/*.txt
