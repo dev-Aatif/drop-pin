@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# Data (Don't upload your private images/keys)
+data/pins/*
+!data/pins/.gitkeep
+data/done/*
+!data/done/.gitkeep
+data/recent.json
+
+# OS files
+.DS_Store
+Thumbs.db

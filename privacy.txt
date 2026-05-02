@@ -1,0 +1,10 @@
+Drop-Pin Privacy Policy
+
+Drop-Pin is a personal automation tool designed to manage Pinterest uploads. 
+
+1. Data Collection: This application does not collect, store, or share any personal user data.
+2. API Usage: The app only accesses the Pinterest account provided via the user's specific API token.
+3. Third Parties: No data is shared with third parties.
+4. Purpose: The application is for personal automation use only.
+
+For any questions, please contact the repository owner.
