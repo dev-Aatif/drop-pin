@@ -39,24 +39,26 @@ def get_client():
         return None
 
     try:
-        # Create the credentials file manually to bypass Selenium login
+        # Create the credentials folder
         cred_dir = os.path.join(BASE_DIR, "data", "auth")
         os.makedirs(cred_dir, exist_ok=True)
-        cred_file = os.path.join(cred_dir, EMAIL)
         
-        # If a previous run created a directory with the email name, delete it
+        # We use a fixed filename 'session' instead of the email to avoid glitches
+        cred_file = os.path.join(cred_dir, "session")
+        
+        # If 'session' is somehow a directory, remove it
         if os.path.isdir(cred_file):
             shutil.rmtree(cred_file)
-        
-        # We inject the session cookie. py3pin will use this and skip login!
+            
+        # Inject the session cookie. py3pin will use this and skip login!
         cookie_data = {
             "_pinterest_sess": sess_cookie,
         }
         with open(cred_file, "w") as f:
             json.dump(cookie_data, f)
 
-        # Initialize (it will read the file we just made)
-        return Pinterest(email=EMAIL, username=USERNAME, cred_root=cred_dir)
+        # Initialize. We tell it the "email" is "session" so it loads our file.
+        return Pinterest(email="session", username=USERNAME, cred_root=cred_dir)
     except Exception as e:
         logging.error(f"Failed to initialize Pinterest client: {e}")
         return None
