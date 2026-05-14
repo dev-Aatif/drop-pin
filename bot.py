@@ -139,7 +139,14 @@ def run_bot_job():
 
     try:
         # 1. Get Board ID (Unofficial API way)
-        boards = client.boards_all()
+        logging.info(f"Fetching boards for user: {client.username}")
+        try:
+            boards = client.boards_all()
+        except Exception as e:
+            if hasattr(e, 'response') and e.response is not None:
+                logging.error(f"403 Details: {e.response.text}")
+            raise e
+            
         board_id = None
         for b in boards:
             if b.get('name', '').lower() == board_name.lower():
