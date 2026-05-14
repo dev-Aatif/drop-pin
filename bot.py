@@ -40,7 +40,7 @@ def get_client():
 
     try:
         # Create the credentials file manually to bypass Selenium login
-        cred_dir = os.path.join(BASE_DIR, "data")
+        cred_dir = os.path.join(BASE_DIR, "data", "auth")
         os.makedirs(cred_dir, exist_ok=True)
         cred_file = os.path.join(cred_dir, EMAIL)
         
