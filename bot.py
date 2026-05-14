@@ -28,12 +28,30 @@ CREDS_FILE = os.path.join(BASE_DIR, "data", "creds.json")
 
 # Initialize Pinterest Client
 def get_client():
-    if not EMAIL or not PASSWORD:
-        logging.error("PINTEREST_EMAIL or PINTEREST_PASSWORD missing from .env")
+    if not EMAIL:
+        logging.error("PINTEREST_EMAIL missing from .env")
         return None
+        
+    sess_cookie = os.getenv("PINTEREST_SESS_COOKIE")
+    if not sess_cookie:
+        logging.error("PINTEREST_SESS_COOKIE is missing. Cannot bypass login.")
+        return None
+
     try:
-        # The library uses a creds file to stay logged in
-        return Pinterest(email=EMAIL, password=PASSWORD, username=USERNAME, creds_state=CREDS_FILE)
+        # Create the credentials file manually to bypass Selenium login
+        cred_dir = os.path.join(BASE_DIR, "data")
+        os.makedirs(cred_dir, exist_ok=True)
+        cred_file = os.path.join(cred_dir, EMAIL)
+        
+        # We inject the session cookie. py3pin will use this and skip login!
+        cookie_data = {
+            "_pinterest_sess": sess_cookie,
+        }
+        with open(cred_file, "w") as f:
+            json.dump(cookie_data, f)
+
+        # Initialize (it will read the file we just made)
+        return Pinterest(email=EMAIL, username=USERNAME, cred_root=cred_dir)
     except Exception as e:
         logging.error(f"Failed to initialize Pinterest client: {e}")
         return None
@@ -111,11 +129,11 @@ def run_bot_job():
 
     try:
         # 1. Get Board ID (Unofficial API way)
-        boards = client.get_boards()
+        boards = client.boards_all()
         board_id = None
         for b in boards:
-            if b['name'].lower() == board_name.lower():
-                board_id = b['id']
+            if b.get('name', '').lower() == board_name.lower():
+                board_id = b.get('id')
                 break
         
         if not board_id:
