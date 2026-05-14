@@ -49,7 +49,7 @@ def get_queue_data():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', cron_secret=CRON_SECRET)
 
 @app.route('/api/queue', methods=['GET'])
 def api_queue():
