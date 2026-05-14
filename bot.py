@@ -5,6 +5,7 @@ import random
 import logging
 import mimetypes
 import shutil
+import traceback
 from datetime import datetime
 from dotenv import load_dotenv
 from py3pin.Pinterest import Pinterest
@@ -61,6 +62,7 @@ def get_client():
         return Pinterest(email="session", username=USERNAME, cred_root=cred_dir)
     except Exception as e:
         logging.error(f"Failed to initialize Pinterest client: {e}")
+        traceback.print_exc()
         return None
 
 def get_oldest_image():
