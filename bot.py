@@ -4,6 +4,7 @@ import json
 import random
 import logging
 import mimetypes
+import shutil
 from datetime import datetime
 from dotenv import load_dotenv
 from py3pin.Pinterest import Pinterest
@@ -42,6 +43,10 @@ def get_client():
         cred_dir = os.path.join(BASE_DIR, "data")
         os.makedirs(cred_dir, exist_ok=True)
         cred_file = os.path.join(cred_dir, EMAIL)
+        
+        # If a previous run created a directory with the email name, delete it
+        if os.path.isdir(cred_file):
+            shutil.rmtree(cred_file)
         
         # We inject the session cookie. py3pin will use this and skip login!
         cookie_data = {
