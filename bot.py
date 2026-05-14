@@ -48,6 +48,17 @@ def get_client():
         # This bypasses all file/login issues completely
         client.http.cookies.set("_pinterest_sess", sess_cookie)
         
+        # Warm-up: hit Pinterest homepage to get the CSRF token cookie
+        # Without this, all API calls get 403 Forbidden
+        warmup = client.http.get("https://www.pinterest.com/", headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        })
+        csrftoken = client.http.cookies.get("csrftoken")
+        if csrftoken:
+            logging.info(f"CSRF token obtained successfully.")
+        else:
+            logging.warning("No CSRF token received. API calls may fail.")
+        
         logging.info("Pinterest client initialized with session cookie.")
         return client
     except Exception as e:
