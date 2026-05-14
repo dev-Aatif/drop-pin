@@ -42,24 +42,24 @@ def get_client():
     try:
         # Let py3pin create whatever directory structure it wants
         cred_dir = os.path.join(BASE_DIR, "data", "auth")
-        client = Pinterest(email=EMAIL, username=USERNAME, cred_root=cred_dir)
         
-        # Inject the session cookie directly into the HTTP session
-        # This bypasses all file/login issues completely
+        # Use a modern, consistent User-Agent
+        modern_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        
+        client = Pinterest(email=EMAIL, username=USERNAME, cred_root=cred_dir, user_agent=modern_ua)
+        
+        # Inject the session cookie
         client.http.cookies.set("_pinterest_sess", sess_cookie)
         
-        # Warm-up: hit Pinterest homepage to get the CSRF token cookie
-        # Without this, all API calls get 403 Forbidden
-        warmup = client.http.get("https://www.pinterest.com/", headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
+        # Warm-up with the SAME User-Agent
+        client.http.get("https://www.pinterest.com/", headers={"User-Agent": modern_ua})
+        
         csrftoken = client.http.cookies.get("csrftoken")
         if csrftoken:
-            logging.info(f"CSRF token obtained successfully.")
+            logging.info(f"CSRF token obtained. Using username: {client.username}")
         else:
             logging.warning("No CSRF token received. API calls may fail.")
         
-        logging.info("Pinterest client initialized with session cookie.")
         return client
     except Exception as e:
         logging.error(f"Failed to initialize Pinterest client: {e}")
