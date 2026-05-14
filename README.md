@@ -40,14 +40,16 @@ Since you want this fully automated without providing a credit card, you can use
 5. Create your `.env` file via their file manager to include your API keys.
 6. Your dashboard is now live at `https://your-username.pythonanywhere.com`!
 
-### Step B: Automate the 1-Hour Timer with Cron-Job.org
-PythonAnywhere's free tier does not allow internal background timers, so we use an external service to "wake it up" and trigger the post.
+### Step B: Automate the Randomized Timer with Cron-Job.org
+To make your posting look human, the bot uses a "Smart Jitter" schedule. It aims for **20 posts per day** (about one every 72 minutes) but at completely random times.
+
 1. Sign up for free at [Cron-Job.org](https://cron-job.org/).
 2. Create a new cron job.
 3. Set the URL to: `https://your-username.pythonanywhere.com/api/test_bot?token=YOUR_CRON_SECRET`
    *(Replace `YOUR_CRON_SECRET` with whatever you put in your `.env` file).*
-4. Set the schedule to run **Every 1 hour**.
-5. Save it! The cron job will now automatically ping your app every hour to trigger the next Pinterest upload!
+4. Set the schedule to run **Every 15 minutes**. 
+   *(Don't worry, it won't post every 15 minutes! It will only post when its internal random timer says it's time).*
+5. Save it! Your bot is now fully automated and randomized.
 
 ---
 

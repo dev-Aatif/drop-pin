@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('test-bot-btn').addEventListener('click', async () => {
         try {
             showToast('Triggering manual run...', 'success');
-            const res = await fetch('/api/test_bot', { method: 'POST' });
+            const res = await fetch('/api/test_bot?force=true', { method: 'POST' });
             const data = await res.json();
             showToast(data.message, 'success');
             setTimeout(loadActivity, 1500); // Reload after brief delay
