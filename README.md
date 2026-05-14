@@ -10,24 +10,21 @@ You can monitor the queue, add new images, and view recent activity via the buil
 
 ---
 
-## 1. Getting Your Pinterest API Keys
+## 1. Getting Your Pinterest Credentials
 
-To post automatically, you need a Pinterest Developer App.
+Since the official Pinterest API is highly restrictive, this bot uses a **Login Method**. It mimics a real user login, which is much more reliable for personal bots.
 
-1. Go to [Pinterest Developers](https://developers.pinterest.com/) and log in.
-2. Click **Create App** and fill in the basic details.
-3. Once created, go to the **Credentials** section of your app.
-4. Generate an **Access Token** with the following scopes:
-   - `boards:read`
-   - `pins:read`
-   - `pins:write`
-5. Create a file named `.env` in this directory and add your token, as well as a secret string to protect your bot's trigger endpoint:
-   ```env
-   PINTEREST_ACCESS_TOKEN=your_access_token_here
-   CRON_SECRET=my_super_secret_password
-   ```
+1.  Create a file named `.env` in this directory (or update your existing one).
+2.  Add your Pinterest account details:
+    ```env
+    PINTEREST_EMAIL=your_email@example.com
+    PINTEREST_PASSWORD=your_password
+    PINTEREST_USERNAME=your_pinterest_username
+    CRON_SECRET=my_super_secret_password
+    ```
+    *(Note: Your username is what appears in your Pinterest profile URL, e.g., pinterest.com/your_username)*
 
-_(Note: The folder names in `data/pins/` MUST exactly match the names of your existing Pinterest boards. The bot will automatically find the corresponding Board ID.)_
+3.  The bot will automatically handle the login and stay logged in using a local `creds.json` file.
 
 ---
 
