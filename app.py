@@ -152,6 +152,6 @@ def serve_pin_image(filename):
     return send_from_directory(PINS_DIR, filename)
 
 if __name__ == '__main__':
-    # Start the server
-    # host='0.0.0.0' allows external access if needed (like on Oracle Cloud)
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    # Required for Render.com and other cloud hosts
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
