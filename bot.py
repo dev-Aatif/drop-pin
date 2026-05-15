@@ -26,6 +26,7 @@ BUFFER_API_URL = "https://api.bufferapp.com/v2/graphql"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PINS_DIR = os.path.join(BASE_DIR, "data", "pins")
 DONE_DIR = os.path.join(BASE_DIR, "data", "done")
+TITLES_FILE = os.path.join(BASE_DIR, "data", "titles.txt")
 RECENT_FILE = os.path.join(BASE_DIR, "data", "recent.json")
 
 # Supported image types
