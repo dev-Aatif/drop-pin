@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             container.innerHTML = '';
             data.data.forEach(item => {
-                const isSuccess = item.status.toLowerCase() === 'success';
+                const isSuccess = item.status.toLowerCase().includes('success');
                 const iconClass = isSuccess ? 'success' : 'error';
                 const iconName = isSuccess ? 'fa-check' : 'fa-xmark';
                 

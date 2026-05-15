@@ -3,7 +3,7 @@ import json
 import time
 import random
 import shutil
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from bot import run_bot_job, PINS_DIR, DONE_DIR, TITLES_FILE, RECENT_FILE
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -145,6 +145,11 @@ def test_bot():
     set_next_post_time()
     
     return jsonify({"status": "success", "message": "Bot job executed successfully. Next post scheduled."})
+
+@app.route('/pins/<path:filename>')
+def serve_pin_image(filename):
+    """Serves images from the pins directory so Buffer can access them."""
+    return send_from_directory(PINS_DIR, filename)
 
 if __name__ == '__main__':
     # Start the server
