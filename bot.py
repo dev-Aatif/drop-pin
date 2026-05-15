@@ -20,8 +20,8 @@ BUFFER_CHANNEL_ID = os.getenv("BUFFER_CHANNEL_ID")
 BASE_URL = os.getenv("BASE_URL", "").rstrip("/") 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# USE BUFFERAPP.COM FOR PYTHONANYWHERE WHITELIST COMPATIBILITY
-BUFFER_API_URL = "https://api.bufferapp.com/v2/graphql"
+# TRYING ALTERNATE ENDPOINT
+BUFFER_API_URL = "https://api.buffer.com/v2/graphql"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PINS_DIR = os.path.join(BASE_DIR, "data", "pins")
