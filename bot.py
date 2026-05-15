@@ -58,30 +58,37 @@ def get_oldest_image():
     
     return oldest_file, board_name
 
+def _fallback_content(board_name):
+    """Generates decent content when Gemini is unavailable."""
+    titles = [f"Stunning {board_name} Ideas", f"The Ultimate {board_name} Board", f"{board_name} Goals for 2026"]
+    return random.choice(titles), f"Beautiful {board_name} inspiration. #aesthetic #{board_name.replace(' ', '')}"
+
 def generate_ai_content(board_name):
     """Uses Gemini to generate a viral title and description."""
     if not GEMINI_API_KEY:
-        return f"{board_name} Inspiration", f"Beautiful {board_name} aesthetic. #inspiration"
+        return _fallback_content(board_name)
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+        # Use 1.5 Flash for higher rate limits
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             f"Create a viral Pinterest title and a short SEO description (with 5 hashtags) "
             f"for a pin about '{board_name}'. Return ONLY valid JSON: {{\"title\": \"...\", \"description\": \"...\"}}"
         )
         response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=15)
         data = response.json()
+        
         if 'candidates' not in data:
-            logging.warning(f"Gemini API issue: {data}")
+            logging.warning("Gemini limit reached or error. Using fallback.")
             return _fallback_content(board_name)
-            
+
         text = data['candidates'][0]['content']['parts'][0]['text']
         text = text.replace('```json', '').replace('```', '').strip()
         result = json.loads(text)
         return result.get('title'), result.get('description')
     except Exception as e:
         logging.error(f"Gemini error: {e}")
-        return f"{board_name} Style", f"The best {board_name} inspiration. #aesthetic"
+        return _fallback_content(board_name)
 
 def log_activity(filename, board_name, status, title):
     try:
@@ -95,7 +102,7 @@ def log_activity(filename, board_name, status, title):
     except: pass
 
 def run_bot_job():
-    logging.info("Starting Pinterest bot job via Buffer GraphQL...")
+    logging.info("Starting Pinterest bot job via Buffer...")
     
     image_path, board_name = get_oldest_image()
     if not image_path: return
@@ -105,19 +112,14 @@ def run_bot_job():
     encoded_path = "/".join(quote(segment) for segment in relative_path.split(os.sep))
     image_url = f"{BASE_URL}/pins/{encoded_path}"
     
-    logging.info(f"Preparing post for: {title}")
+    logging.info(f"Posting: {title} (Source: {image_url})")
 
     try:
-        # LATEST 2026 GRAPHQL MUTATION
         mutation = """
         mutation CreatePost($input: CreatePostInput!) {
             createPost(input: $input) {
-                ... on PostActionSuccess {
-                    post { id }
-                }
-                ... on MutationError {
-                    message
-                }
+                ... on PostActionSuccess { post { id } }
+                ... on MutationError { message }
             }
         }
         """
@@ -128,48 +130,31 @@ def run_bot_job():
                 "channelId": BUFFER_CHANNEL_ID,
                 "schedulingType": "automatic",
                 "mode": "addToQueue",
-                "assets": [
-                    {
-                        "image": {
-                            "url": image_url
-                        }
-                    }
-                ]
+                "assets": [{"image": {"url": image_url}}]
             }
         }
         
-        headers = {
-            "Authorization": f"Bearer {BUFFER_API_KEY}",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-        
-        response = requests.post(
-            BUFFER_API_URL,
-            json={"query": mutation, "variables": variables},
-            headers=headers,
-            timeout=30
-        )
-        
+        headers = {"Authorization": f"Bearer {BUFFER_API_KEY}", "Content-Type": "application/json"}
+        response = requests.post(BUFFER_API_URL, json={"query": mutation, "variables": variables}, headers=headers, timeout=30)
         result = response.json()
         
         if "errors" in result:
-            error_msg = result["errors"][0].get("message")
-            logging.error(f"Buffer API Error: {error_msg}")
-            log_activity(image_path, board_name, f"Error: {error_msg}", title)
+            msg = result["errors"][0].get("message")
+            logging.error(f"Buffer Error: {msg}")
+            log_activity(image_path, board_name, f"Error: {msg}", title)
             return
 
         post_data = result.get("data", {}).get("createPost", {})
         if "post" in post_data:
-            logging.info(f"Successfully sent to Buffer!")
+            logging.info("Success!")
             filename = os.path.basename(image_path)
             done_path = os.path.join(DONE_DIR, f"{int(time.time())}_{filename}")
             os.rename(image_path, done_path)
             log_activity(image_path, board_name, "Success", title)
         else:
-            msg = post_data.get("message", "Unknown Mutation Error")
-            logging.error(f"Mutation Error: {msg}")
-            log_activity(image_path, board_name, f"Error: {msg}", title)
+            msg = post_data.get("message", "Check if Image URL is public and Web App is Reloaded")
+            logging.error(f"Post Failed: {msg}")
+            log_activity(image_path, board_name, f"Failed: {msg}", title)
             
     except Exception as e:
         logging.error(f"Bot Exception: {e}")
