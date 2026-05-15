@@ -20,8 +20,8 @@ BUFFER_CHANNEL_ID = os.getenv("BUFFER_CHANNEL_ID")
 BASE_URL = os.getenv("BASE_URL", "").rstrip("/") 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# DEFINITIVE 2026 BUFFER ENDPOINT
-BUFFER_API_URL = "https://api.buffer.com"
+# USE BUFFERAPP.COM FOR PYTHONANYWHERE WHITELIST COMPATIBILITY
+BUFFER_API_URL = "https://api.bufferapp.com/v2/graphql"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PINS_DIR = os.path.join(BASE_DIR, "data", "pins")
@@ -70,7 +70,12 @@ def generate_ai_content(board_name):
             f"for a pin about '{board_name}'. Return ONLY valid JSON: {{\"title\": \"...\", \"description\": \"...\"}}"
         )
         response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=15)
-        text = response.json()['candidates'][0]['content']['parts'][0]['text']
+        data = response.json()
+        if 'candidates' not in data:
+            logging.warning(f"Gemini API issue: {data}")
+            return _fallback_content(board_name)
+            
+        text = data['candidates'][0]['content']['parts'][0]['text']
         text = text.replace('```json', '').replace('```', '').strip()
         result = json.loads(text)
         return result.get('title'), result.get('description')
