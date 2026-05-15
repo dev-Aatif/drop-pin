@@ -70,7 +70,6 @@ def generate_ai_content(board_name):
         return _fallback_content(board_name)
 
     try:
-        # Use 1.5 Flash for higher rate limits
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             f"Create a viral Pinterest title and a short SEO description (with 5 hashtags) "
@@ -80,7 +79,6 @@ def generate_ai_content(board_name):
         data = response.json()
         
         if 'candidates' not in data:
-            logging.warning("Gemini limit reached or error. Using fallback.")
             return _fallback_content(board_name)
 
         text = data['candidates'][0]['content']['parts'][0]['text']
@@ -88,7 +86,6 @@ def generate_ai_content(board_name):
         result = json.loads(text)
         return result.get('title'), result.get('description')
     except Exception as e:
-        logging.error(f"Gemini error: {e}")
         return _fallback_content(board_name)
 
 def log_activity(filename, board_name, status, title):
@@ -113,7 +110,7 @@ def run_bot_job():
     encoded_path = "/".join(quote(segment) for segment in relative_path.split(os.sep))
     image_url = f"{BASE_URL}/pins/{encoded_path}"
     
-    logging.info(f"Posting: {title} (Source: {image_url})")
+    logging.info(f"Posting: {title}")
 
     try:
         mutation = """
@@ -125,12 +122,14 @@ def run_bot_job():
         }
         """
         
+        # Pinterest requires: text, link, and assets
         variables = {
             "input": {
                 "text": f"{title}\n\n{description}",
                 "channelId": BUFFER_CHANNEL_ID,
                 "schedulingType": "automatic",
                 "mode": "addToQueue",
+                "link": BASE_URL,
                 "assets": [{"image": {"url": image_url}}]
             }
         }
@@ -139,9 +138,10 @@ def run_bot_job():
         response = requests.post(BUFFER_API_URL, json={"query": mutation, "variables": variables}, headers=headers, timeout=30)
         result = response.json()
         
+        logging.info(f"Full Buffer Response: {json.dumps(result)}")
+
         if "errors" in result:
             msg = result["errors"][0].get("message")
-            logging.error(f"Buffer Error: {msg}")
             log_activity(image_path, board_name, f"Error: {msg}", title)
             return
 
@@ -153,8 +153,7 @@ def run_bot_job():
             os.rename(image_path, done_path)
             log_activity(image_path, board_name, "Success", title)
         else:
-            msg = post_data.get("message", "Check if Image URL is public and Web App is Reloaded")
-            logging.error(f"Post Failed: {msg}")
+            msg = post_data.get("message", "Unknown Error")
             log_activity(image_path, board_name, f"Failed: {msg}", title)
             
     except Exception as e:
