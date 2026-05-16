@@ -94,9 +94,10 @@ def run_bot_job():
     if not image_path: return
     
     title, description = generate_ai_content(board_name)
-    relative_path = os.path.relpath(image_path, PINS_DIR)
-    encoded_path = "/".join(quote(segment) for segment in relative_path.split(os.sep))
-    image_url = f"{BASE_URL}/pins/{encoded_path}"
+    filename = os.path.basename(image_path)
+    done_filename = f"{int(time.time())}_{filename}"
+    encoded_filename = quote(done_filename)
+    image_url = f"{BASE_URL}/done/{encoded_filename}"
     
     logging.info(f"Sending to Make.com: {title}")
 
@@ -113,8 +114,7 @@ def run_bot_job():
         
         if response.status_code == 200:
             logging.info("Success! Make.com received the data.")
-            filename = os.path.basename(image_path)
-            done_path = os.path.join(DONE_DIR, f"{int(time.time())}_{filename}")
+            done_path = os.path.join(DONE_DIR, done_filename)
             os.rename(image_path, done_path)
             log_activity(image_path, board_name, "Success (via Bridge)", title)
         else:

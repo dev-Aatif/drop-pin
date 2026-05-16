@@ -151,6 +151,11 @@ def serve_pin_image(filename):
     """Serves images from the pins directory so Buffer can access them."""
     return send_from_directory(PINS_DIR, filename)
 
+@app.route('/done/<path:filename>')
+def serve_done_image(filename):
+    """Serves completed images so Buffer can download them after they are moved."""
+    return send_from_directory(DONE_DIR, filename)
+
 if __name__ == '__main__':
     # Required for Render.com and other cloud hosts
     port = int(os.environ.get("PORT", 5000))
