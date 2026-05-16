@@ -29,16 +29,6 @@ BOARDS_FILE = os.path.join(BASE_DIR, "data", "boards.json")
 # Supported image types
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 
-def get_buffer_channel_id(board_name):
-    """Retrieves the specific Buffer Channel ID for a given board."""
-    if os.path.exists(BOARDS_FILE):
-        try:
-            with open(BOARDS_FILE, 'r') as f:
-                boards = json.load(f)
-                return boards.get(board_name, "")
-        except: pass
-    return ""
-
 def get_oldest_image():
     """Finds the absolute oldest image file across all board folders."""
     oldest_file = None
@@ -110,8 +100,6 @@ def run_bot_job():
     encoded_filename = quote(done_filename)
     image_url = f"{BASE_URL}/done/{encoded_filename}"
     
-    buffer_channel_id = get_buffer_channel_id(board_name)
-    
     logging.info(f"Sending to Make.com: {title} (Board: {board_name})")
 
     try:
@@ -120,7 +108,6 @@ def run_bot_job():
             "description": f"{title}\n\n{description}",
             "image_url": image_url,
             "board": board_name,
-            "buffer_channel_id": buffer_channel_id,
             "link": BASE_URL
         }
         
