@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Drop-Pin Bot Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Drop-Pin</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -15,45 +14,25 @@
         
         <!-- Header -->
         <header class="app-header">
-            <h1><i class="fa-brands fa-pinterest" style="color: var(--accent);"></i> Drop-Pin <span style="font-size:0.5em;opacity:0.6;font-weight:400;margin-left:8px;">via Buffer</span></h1>
+            <h1><i class="fa-brands fa-pinterest" style="color: var(--accent);"></i> Drop-Pin</h1>
             <div class="status-indicator">
                 <span class="pulse"></span> Active
             </div>
         </header>
 
-        <!-- Main Layout Wrapper (Sidebar + Content) -->
+        <!-- Main Layout Wrapper -->
         <div class="main-wrapper">
             
-            <!-- Navigation System -->
-            <nav class="nav-system">
-                <button class="nav-item active" data-target="view-queue">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <span>Queue</span>
-                </button>
-                <button class="nav-item" data-target="view-add">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>Upload</span>
-                </button>
-                <button class="nav-item" data-target="view-activity">
-                    <i class="fa-solid fa-bolt"></i>
-                    <span>Activity</span>
-                </button>
-                <button class="nav-item" data-target="view-settings">
-                    <i class="fa-solid fa-gear"></i>
-                    <span>Settings</span>
-                </button>
-            </nav>
-
             <!-- Main Content Area -->
             <main class="content-area">
                 
                 <!-- VIEW 1: QUEUE -->
                 <section id="view-queue" class="view active">
                     <div class="view-header">
-                        <h2>Board Queue</h2>
-                        <p>Current images in the pipeline waiting to be posted.</p>
+                        <h2>Queue</h2>
+                        <p>Images waiting to be posted.</p>
                     </div>
-                    <div id="queue-container" class="grid-layout">
+                    <div id="queue-container">
                         <!-- Queue items injected via JS -->
                         <div class="loading">Loading queue...</div>
                     </div>
@@ -62,81 +41,96 @@
                 <!-- VIEW 2: QUICK ADD -->
                 <section id="view-add" class="view">
                     <div class="view-header">
-                        <h2>Upload Media</h2>
-                        <p>Add new images to your automated Pinterest queue.</p>
+                        <h2>Upload</h2>
+                        <p>Add new images to your queue.</p>
                     </div>
                     
-                    <div class="grid-layout">
-                        <div class="glass-card">
-                            <h3><i class="fa-solid fa-cloud-arrow-up"></i> Add to Queue</h3>
-                            <form id="upload-form">
-                                <div class="form-group">
-                                    <label for="board-select">Select or Create Board</label>
-                                    <input type="text" id="board-select" list="boards-list" placeholder="e.g. Minimalist Architecture" required>
-                                    <datalist id="boards-list"></datalist>
-                                </div>
-                                <div class="form-group file-upload-wrapper">
-                                    <input type="file" id="image-upload" accept="image/*" required>
-                                    <label for="image-upload" class="file-upload-label">
-                                        <i class="fa-solid fa-cloud-arrow-up"></i> Choose Image
-                                    </label>
-                                    <span id="file-name">No file chosen</span>
-                                </div>
-                                <button type="submit" class="btn btn-primary" id="upload-btn">Upload & Queue</button>
-                            </form>
-                        </div>
+                    <div class="glass-card">
+                        <h3><i class="fa-solid fa-cloud-arrow-up"></i> New Image</h3>
+                        <form id="upload-form">
+                            <div class="form-group">
+                                <label for="board-select">Select or Create Board</label>
+                                <input type="text" id="board-select" list="boards-list" placeholder="e.g. Minimalist Architecture" required>
+                                <datalist id="boards-list"></datalist>
+                            </div>
+                            <div class="form-group file-upload-wrapper">
+                                <input type="file" id="image-upload" accept="image/*" required>
+                                <label for="image-upload" class="file-upload-label">
+                                    <i class="fa-solid fa-image"></i>
+                                    <span>Choose Image</span>
+                                </label>
+                                <span id="file-name">No file chosen</span>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="upload-btn">Upload to Queue</button>
+                        </form>
+                    </div>
 
-                        <div class="glass-card">
-                            <h3><i class="fa-solid fa-quote-left"></i> Custom Phrases (Optional)</h3>
-                            <form id="titles-form">
-                                <div class="form-group">
-                                    <label for="title-phrases">Fallback Phrases (One per line)</label>
-                                    <textarea id="title-phrases" rows="6" placeholder="Summer Vibes&#10;Incredible Details&#10;Minimalist Life" required></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-secondary">Save Phrases</button>
-                            </form>
-                        </div>
+                    <div class="glass-card" style="margin-top: 24px;">
+                        <h3><i class="fa-solid fa-quote-left"></i> Fallback Phrases</h3>
+                        <form id="titles-form">
+                            <div class="form-group">
+                                <label for="title-phrases">Used if AI fails (One per line)</label>
+                                <textarea id="title-phrases" rows="4" placeholder="Summer Vibes&#10;Incredible Details" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-secondary">Save Phrases</button>
+                        </form>
                     </div>
                 </section>
 
                 <!-- VIEW 3: RECENT ACTIVITY -->
                 <section id="view-activity" class="view">
                     <div class="view-header">
-                        <h2>Recent Activity</h2>
-                        <p>Last 10 automated uploads processed by the bot.</p>
+                        <h2>Activity</h2>
+                        <p>Recent automated posts.</p>
                     </div>
                     
-                    <div class="grid-layout">
-                        <div class="glass-card text-center" style="grid-column: 1 / -1;">
-                            <p style="margin-bottom: 12px; color: var(--text-muted);">Want to force the bot to run right now?</p>
-                            <button id="test-bot-btn" class="btn btn-primary" style="max-width: 300px; margin: 0 auto;"><i class="fa-solid fa-rocket"></i> Trigger Manual Post</button>
-                        </div>
-                        
-                        <div id="activity-container" style="grid-column: 1 / -1;">
-                            <!-- Activity items injected via JS -->
-                            <div class="loading">Loading activity logs...</div>
-                        </div>
+                    <div id="activity-container">
+                        <!-- Activity items injected via JS -->
+                        <div class="loading">Loading logs...</div>
+                    </div>
+
+                    <div class="glass-card text-center" style="margin-top: 24px;">
+                        <p style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-muted);">Force the bot to run now.</p>
+                        <button id="test-bot-btn" class="btn btn-secondary">Trigger Manual Post</button>
                     </div>
                 </section>
 
                 <!-- VIEW 4: SETTINGS / CLEAR -->
                 <section id="view-settings" class="view">
                     <div class="view-header">
-                        <h2>System Settings</h2>
-                        <p>Manage your storage and application preferences.</p>
+                        <h2>Settings</h2>
+                        <p>Manage storage space.</p>
                     </div>
                     
-                    <div class="grid-layout">
-                        <div class="glass-card">
-                            <h3 style="color: var(--danger);"><i class="fa-solid fa-trash-can" style="color: var(--danger); background: rgba(239, 68, 68, 0.1);"></i> Storage Management</h3>
-                            <p style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">This will permanently delete all images that have already been successfully uploaded to Pinterest. This cannot be undone.</p>
-                            <button id="clear-done-btn" class="btn btn-danger"><i class="fa-solid fa-triangle-exclamation"></i> Empty Done Folder</button>
-                        </div>
+                    <div class="glass-card">
+                        <h3 style="color: var(--danger);"><i class="fa-solid fa-trash-can" style="color: var(--danger);"></i> Storage Cleanup</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Permanently delete images that have already been uploaded to Pinterest.</p>
+                        <button id="clear-done-btn" class="btn btn-danger">Empty Done Folder</button>
                     </div>
                 </section>
 
             </main>
         </div>
+
+        <!-- Navigation System (Bottom) -->
+        <nav class="nav-system">
+            <button class="nav-item active" data-target="view-queue">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Queue</span>
+            </button>
+            <button class="nav-item" data-target="view-add">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Upload</span>
+            </button>
+            <button class="nav-item" data-target="view-activity">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Activity</span>
+            </button>
+            <button class="nav-item" data-target="view-settings">
+                <i class="fa-solid fa-gear"></i>
+                <span>Settings</span>
+            </button>
+        </nav>
 
         <!-- Toast Notifications -->
         <div id="toast-container" class="toast-container"></div>
