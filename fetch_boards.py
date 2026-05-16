@@ -43,6 +43,10 @@ try:
         id
         name
         service
+        subprofiles {{
+          id
+          name
+        }}
       }}
     }}
     """
@@ -62,14 +66,19 @@ try:
         print("\n--- FOUND PINTEREST BOARDS ---")
         for channel in channels:
             if channel.get('service') == 'pinterest':
-                board_name = channel.get('name')
-                board_id = channel.get('id')
+                subprofiles = channel.get('subprofiles', [])
+                if not subprofiles:
+                    print("No boards found under this Pinterest account!")
                 
-                print(f"Board Name: {board_name}")
-                print(f"Channel ID: {board_id}")
-                print("-" * 30)
-                
-                boards_mapping[board_name] = board_id
+                for board in subprofiles:
+                    board_name = board.get('name')
+                    board_id = board.get('id')
+                    
+                    print(f"Board Name: {board_name}")
+                    print(f"Board ID: {board_id}")
+                    print("-" * 30)
+                    
+                    boards_mapping[board_name] = board_id
         
         if not boards_mapping:
             print("No Pinterest boards found.")
