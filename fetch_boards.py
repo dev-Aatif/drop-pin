@@ -13,22 +13,49 @@ if not BUFFER_API_KEY:
 url = "https://api.buffer.com/v2/graphql"
 headers = {"Authorization": f"Bearer {BUFFER_API_KEY}"}
 
-query = """
+print("Fetching your Organization ID...")
+org_query = """
 query {
-  channels {
-    id
-    name
-    service
+  account {
+    organizations {
+      id
+    }
   }
 }
 """
 
-print("Fetching your Pinterest boards from Buffer GraphQL API...")
 try:
-    response = requests.post(url, headers=headers, json={"query": query}, timeout=15)
+    org_response = requests.post(url, headers=headers, json={"query": org_query}, timeout=15)
+    org_data = org_response.json()
+    
+    orgs = org_data.get('data', {}).get('account', {}).get('organizations', [])
+    if not orgs:
+        print("Error: Could not find any Buffer organizations on this account.")
+        print(org_data)
+        exit(1)
+        
+    org_id = orgs[0]['id']
+    print(f"Found Organization ID: {org_id}")
+    
+    channels_query = f"""
+    query {{
+      channels(input: {{ organizationId: "{org_id}" }}) {{
+        id
+        name
+        service
+      }}
+    }}
+    """
+    
+    print("\nFetching Pinterest boards...")
+    response = requests.post(url, headers=headers, json={"query": channels_query}, timeout=15)
     
     if response.status_code == 200:
         data = response.json()
+        if 'errors' in data:
+            print("GraphQL Error:", data['errors'])
+            exit(1)
+            
         channels = data.get('data', {}).get('channels', [])
         boards_mapping = {}
         
