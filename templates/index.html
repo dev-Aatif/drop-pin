@@ -15,8 +15,11 @@
         <!-- Header -->
         <header class="app-header">
             <h1><i class="fa-brands fa-pinterest" style="color: var(--accent);"></i> Drop-Pin</h1>
-            <div class="status-indicator">
-                <span class="pulse"></span> Active
+            <div style="display:flex; gap:16px; align-items:center;">
+                <div class="status-indicator">
+                    <span class="pulse"></span> Active
+                </div>
+                <a href="/logout" title="Logout" style="color: var(--text-muted); font-size: 1.2rem; transition: color 0.2s;"><i class="fa-solid fa-right-from-bracket"></i></a>
             </div>
         </header>
 
@@ -32,7 +35,7 @@
                         <h2>Queue</h2>
                         <p>Images waiting to be posted.</p>
                     </div>
-                    <div id="queue-container">
+                    <div id="queue-container" class="queue-list">
                         <!-- Queue items injected via JS -->
                         <div class="loading">Loading queue...</div>
                     </div>
@@ -45,32 +48,40 @@
                 <!-- VIEW 2: QUICK ADD -->
                 <section id="view-add" class="view">
                     <div class="view-header">
-                        <h2>Upload</h2>
-                        <p>Add new images to your queue.</p>
+                        <h2>Upload & Context</h2>
+                        <p>Add new images and define AI context.</p>
                     </div>
                     
                     <div class="glass-card">
-                        <h3><i class="fa-solid fa-cloud-arrow-up"></i> New Image</h3>
+                        <h3><i class="fa-solid fa-cloud-arrow-up"></i> New Images</h3>
                         <form id="upload-form">
                             <div class="form-group">
                                 <label for="board-select">Select or Create Board</label>
                                 <input type="text" id="board-select" list="boards-list" placeholder="e.g. Minimalist Architecture" required>
                                 <datalist id="boards-list"></datalist>
                             </div>
+                            
+                            <!-- AI Context specific to board -->
+                            <div class="form-group">
+                                <label for="board-description">Board Context (Optional, for AI)</label>
+                                <textarea id="board-description" rows="2" placeholder="e.g. Focus on concrete textures, brutalist vibes..."></textarea>
+                                <button type="button" id="save-desc-btn" class="btn btn-secondary" style="margin-top: 8px; padding: 10px; font-size: 0.9rem;">Save Context</button>
+                            </div>
+
                             <div class="form-group file-upload-wrapper">
-                                <input type="file" id="image-upload" accept="image/*" required>
+                                <input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp" multiple required>
                                 <label for="image-upload" class="file-upload-label">
-                                    <i class="fa-solid fa-image"></i>
-                                    <span>Choose Image</span>
+                                    <i class="fa-solid fa-images"></i>
+                                    <span>Choose Images</span>
                                 </label>
-                                <span id="file-name">No file chosen</span>
+                                <span id="file-name">No files chosen</span>
                             </div>
                             <button type="submit" class="btn btn-primary" id="upload-btn">Upload to Queue</button>
                         </form>
                     </div>
 
                     <div class="glass-card" style="margin-top: 24px;">
-                        <h3><i class="fa-solid fa-quote-left"></i> Fallback Phrases</h3>
+                        <h3><i class="fa-solid fa-quote-left"></i> Fallback Titles</h3>
                         <form id="titles-form">
                             <div class="form-group">
                                 <label for="title-phrases">Used if AI fails (One per line)</label>
@@ -103,7 +114,7 @@
                     
                     <div class="glass-card">
                         <h3 style="color: var(--danger);"><i class="fa-solid fa-trash-can" style="color: var(--danger);"></i> Storage Cleanup</h3>
-                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Permanently delete images that have already been uploaded to Pinterest.</p>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Permanently delete images that have already been posted to Pinterest.</p>
                         <button id="clear-done-btn" class="btn btn-danger">Empty Done Folder</button>
                     </div>
                 </section>
@@ -133,9 +144,21 @@
 
         <!-- Toast Notifications -->
         <div id="toast-container" class="toast-container"></div>
+
+        <!-- Modal Overlay for Board Queue -->
+        <div id="board-modal" class="modal-overlay">
+            <div class="modal-content glass-card">
+                <div class="modal-header">
+                    <h3 id="modal-board-name" style="margin-bottom:0;">Board Name</h3>
+                    <button id="close-modal" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="modal-grid" class="masonry-grid">
+                    <!-- Images injected here -->
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script>window.CRON_SECRET = "{{ cron_secret }}";</script>
     <script src="/static/js/main.js"></script>
 </body>
 </html>

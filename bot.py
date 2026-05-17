@@ -1,12 +1,14 @@
 import os
 import time
 import json
-import random
 import logging
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
 from urllib.parse import quote
+
+# Import database functions
+from database import log_activity, get_board_description, get_random_fallback_title
 
 # Load env variables
 load_dotenv()
@@ -22,9 +24,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PINS_DIR = os.path.join(BASE_DIR, "data", "pins")
 DONE_DIR = os.path.join(BASE_DIR, "data", "done")
-TITLES_FILE = os.path.join(BASE_DIR, "data", "titles.txt")
-RECENT_FILE = os.path.join(BASE_DIR, "data", "recent.json")
-BOARDS_FILE = os.path.join(BASE_DIR, "data", "boards.json")
 
 # Supported image types
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
@@ -57,38 +56,38 @@ def get_oldest_image():
     return oldest_file, board_name
 
 def _fallback_content(board_name):
-    titles = [f"Stunning {board_name} Ideas", f"The Ultimate {board_name} Board", f"{board_name} Goals"]
-    return random.choice(titles), f"Beautiful {board_name} inspiration. #aesthetic #{board_name.replace(' ', '')}"
+    title = get_random_fallback_title()
+    if not title:
+        title = f"Stunning {board_name} Ideas"
+    return title, f"Beautiful {board_name} inspiration. #aesthetic #{board_name.replace(' ', '')}"
 
 def generate_ai_content(board_name):
     if not GEMINI_API_KEY: return _fallback_content(board_name)
+    
+    board_desc = get_board_description(board_name)
+    context_str = f"The context/description of this board is: '{board_desc}'." if board_desc else ""
+    
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             f"Act as an expert Pinterest SEO copywriter. Write a highly engaging, click-worthy title (max 60 characters) "
             f"and a descriptive, keyword-rich SEO description (max 400 characters, ending with 5 highly relevant hashtags) "
-            f"for an aesthetic Pinterest pin saved to the board: '{board_name}'. Ensure the tone is inspiring, aesthetic, and modern. "
+            f"for an aesthetic Pinterest pin saved to the board: '{board_name}'. {context_str} Ensure the tone is inspiring, aesthetic, and modern. "
             f"Return ONLY valid JSON exactly matching this format: {{\"title\": \"...\", \"description\": \"...\"}} "
             f"Do not include any markdown formatting, backticks, or extra text."
         )
         response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=15)
+        response.raise_for_status()
         data = response.json()
-        if 'candidates' not in data: return _fallback_content(board_name)
+        if 'candidates' not in data: 
+            return _fallback_content(board_name)
+            
         text = data['candidates'][0]['content']['parts'][0]['text'].replace('```json', '').replace('```', '').strip()
         result = json.loads(text)
         return result.get('title'), result.get('description')
-    except: return _fallback_content(board_name)
-
-def log_activity(filename, board_name, status, title):
-    try:
-        activities = []
-        if os.path.exists(RECENT_FILE):
-            with open(RECENT_FILE, 'r') as f:
-                try: activities = json.load(f)
-                except: pass
-        activities.insert(0, {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "filename": os.path.basename(filename), "board": board_name, "title": title, "status": status})
-        with open(RECENT_FILE, 'w') as f: json.dump(activities[:20], f, indent=4)
-    except: pass
+    except Exception as e:
+        logging.error(f"AI Generation Failed: {str(e)}")
+        return _fallback_content(board_name)
 
 def run_bot_job():
     logging.info("Starting Pinterest bot job via Make.com Bridge...")
@@ -98,7 +97,9 @@ def run_bot_job():
         return
 
     image_path, board_name = get_oldest_image()
-    if not image_path: return
+    if not image_path: 
+        logging.info("No images found in queue.")
+        return
     
     title, description = generate_ai_content(board_name)
     filename = os.path.basename(image_path)
@@ -119,18 +120,22 @@ def run_bot_job():
         
         response = requests.post(MAKE_WEBHOOK_URL, json=payload, timeout=30)
         
+        time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
         if response.status_code == 200:
             logging.info("Success! Make.com received the data.")
+            os.makedirs(DONE_DIR, exist_ok=True)
             done_path = os.path.join(DONE_DIR, done_filename)
             os.rename(image_path, done_path)
-            log_activity(image_path, board_name, "Success (via Bridge)", title)
+            log_activity(filename, board_name, "Success", title, time_str)
         else:
             logging.error(f"Make.com Error: {response.status_code}")
-            log_activity(image_path, board_name, f"Bridge Error: {response.status_code}", title)
+            log_activity(filename, board_name, f"Make.com Error: {response.status_code}", title, time_str)
             
     except Exception as e:
         logging.error(f"Bot Exception: {e}")
-        log_activity(image_path, board_name, f"System Error: {str(e)}", title)
+        time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_activity(filename, board_name, f"System Error", title, time_str)
 
 if __name__ == "__main__":
     run_bot_job()

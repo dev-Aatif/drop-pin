@@ -500,3 +500,115 @@ input[type="file"] {
     padding: 40px;
     font-weight: 500;
 }
+
+/* --- Login Page Styles --- */
+.login-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* --- Modal Overlay & Masonry Grid --- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: fadeScale 0.2s ease-out;
+}
+.modal-overlay.active {
+    display: flex;
+}
+.modal-content {
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0; /* Override glass-card padding */
+    overflow: hidden;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--bg-card);
+    z-index: 2;
+}
+.btn-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.btn-close:hover {
+    color: var(--text-main);
+}
+.masonry-grid {
+    padding: 24px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px;
+}
+.masonry-item {
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background-color: var(--bg-main);
+    aspect-ratio: 2/3; /* Pinterest pin ratio roughly */
+}
+.masonry-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.masonry-item .delete-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background-color: rgba(239, 68, 68, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+}
+.masonry-item:hover .delete-btn {
+    opacity: 1;
+}
+.masonry-item .delete-btn:active {
+    transform: scale(0.9);
+}
+@media (hover: none) {
+    /* Always show delete on mobile */
+    .masonry-item .delete-btn { opacity: 1; }
+}
+
+/* Make queue items clickable */
+.queue-item {
+    cursor: pointer;
+}
+.queue-item:hover {
+    border-color: var(--text-muted);
+}
+

@@ -6,16 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
-            // Update active nav
             navItems.forEach(n => n.classList.remove('active'));
             item.classList.add('active');
 
-            // Show target view
             const targetId = item.getAttribute('data-target');
             views.forEach(v => v.classList.remove('active'));
             document.getElementById(targetId).classList.add('active');
 
-            // Refresh data based on view
             if (targetId === 'view-queue') loadQueue();
             if (targetId === 'view-activity') loadActivity();
         });
@@ -32,11 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         container.appendChild(toast);
         
-        // Remove after animation (3s)
         setTimeout(() => {
-            if(toast.parentElement) {
-                toast.remove();
-            }
+            if(toast.parentElement) toast.remove();
         }, 3000);
     }
 
@@ -62,19 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             container.innerHTML = '';
-            // Assume 50 is a healthy queue size for the progress bar
-            const MAX_HEALTHY = 50; 
-
+            
             for (const [board, count] of Object.entries(data.data)) {
-                let percent = (count / MAX_HEALTHY) * 100;
+                let percent = (count / 50) * 100;
                 if (percent > 100) percent = 100;
-                
-                let fillClass = '';
-                if (count < 5) fillClass = 'empty';
-                else if (count < 15) fillClass = 'low';
+                let fillClass = count < 5 ? 'empty' : (count < 15 ? 'low' : '');
 
                 const html = `
-                    <div class="queue-item">
+                    <div class="queue-item" onclick="openBoardModal('${board}')">
                         <div class="queue-header">
                             <span class="board-name">${board}</span>
                             <span class="image-count">${count} images</span>
@@ -91,17 +80,116 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Modal Logic ---
+    const modal = document.getElementById('board-modal');
+    const modalClose = document.getElementById('close-modal');
+    const modalGrid = document.getElementById('modal-grid');
+    const modalBoardName = document.getElementById('modal-board-name');
+    let currentModalBoard = '';
+
+    window.openBoardModal = async function(boardName) {
+        currentModalBoard = boardName;
+        modalBoardName.textContent = boardName;
+        modalGrid.innerHTML = '<div class="loading">Loading images...</div>';
+        modal.classList.add('active');
+
+        try {
+            const res = await fetch(`/api/board/${encodeURIComponent(boardName)}/pins`);
+            const data = await res.json();
+            
+            if (data.data.length === 0) {
+                modalGrid.innerHTML = '<p class="text-muted" style="grid-column: 1/-1; text-align: center;">No images found.</p>';
+                loadQueue(); // Refresh background queue
+                return;
+            }
+
+            modalGrid.innerHTML = data.data.map(filename => `
+                <div class="masonry-item" id="pin-${filename.replace(/[^a-zA-Z0-9]/g, '-')}">
+                    <img src="/pins/${encodeURIComponent(boardName)}/${encodeURIComponent(filename)}" alt="Pin" loading="lazy">
+                    <button class="delete-btn" onclick="deletePin('${boardName}', '${filename}')" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        } catch(e) {
+            modalGrid.innerHTML = '<p class="text-danger">Error loading pins.</p>';
+        }
+    };
+
+    modalClose.addEventListener('click', () => {
+        modal.classList.remove('active');
+        loadQueue();
+    });
+
+    window.deletePin = async function(boardName, filename) {
+        if(!confirm('Delete this image?')) return;
+        try {
+            const res = await fetch('/api/delete_pin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({board_name: boardName, filename: filename})
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById(`pin-${filename.replace(/[^a-zA-Z0-9]/g, '-')}`).remove();
+                showToast('Deleted', 'success');
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch(e) {
+            showToast('Failed to delete', 'error');
+        }
+    };
+
     // --- View 2: Add Logic ---
     const fileInput = document.getElementById('image-upload');
     const fileNameDisplay = document.getElementById('file-name');
+    const boardSelect = document.getElementById('board-select');
+    const boardDesc = document.getElementById('board-description');
     
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            fileNameDisplay.textContent = e.target.files[0].name;
+        const count = e.target.files.length;
+        if (count > 0) {
+            fileNameDisplay.textContent = count === 1 ? e.target.files[0].name : `${count} files selected`;
             fileNameDisplay.style.color = 'var(--success)';
         } else {
-            fileNameDisplay.textContent = 'No file chosen';
+            fileNameDisplay.textContent = 'No files chosen';
             fileNameDisplay.style.color = 'var(--danger)';
+        }
+    });
+
+    boardSelect.addEventListener('change', async (e) => {
+        const boardName = e.target.value;
+        if(boardName) {
+            boardDesc.value = 'Loading...';
+            try {
+                const res = await fetch(`/api/boards/description?board_name=${encodeURIComponent(boardName)}`);
+                const data = await res.json();
+                if(data.status === 'success') {
+                    boardDesc.value = data.data.description;
+                } else {
+                    boardDesc.value = '';
+                }
+            } catch(e) {
+                boardDesc.value = '';
+            }
+        }
+    });
+
+    document.getElementById('save-desc-btn').addEventListener('click', async () => {
+        const boardName = boardSelect.value;
+        if(!boardName) return showToast('Select a board first', 'error');
+        try {
+            const res = await fetch('/api/boards/description', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({board_name: boardName, description: boardDesc.value})
+            });
+            const data = await res.json();
+            if(data.status === 'success') showToast('Context saved');
+            else showToast(data.message, 'error');
+        } catch(e) {
+            showToast('Failed to save context', 'error');
         }
     });
 
@@ -112,8 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.textContent = 'Uploading...';
 
         const formData = new FormData();
-        formData.append('image', fileInput.files[0]);
-        formData.append('board_name', document.getElementById('board-select').value);
+        for(let i = 0; i < fileInput.files.length; i++) {
+            formData.append('image', fileInput.files[i]);
+        }
+        formData.append('board_name', boardSelect.value);
 
         try {
             const res = await fetch('/api/upload', {
@@ -124,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.status === 'success') {
                 showToast(data.message, 'success');
                 fileInput.value = '';
-                fileNameDisplay.textContent = 'No file chosen';
+                fileNameDisplay.textContent = 'No files chosen';
                 fileNameDisplay.style.color = 'var(--text-muted)';
             } else {
                 showToast(data.message, 'error');
@@ -140,7 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('titles-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const titlesInput = document.getElementById('title-phrases');
-        
         try {
             const res = await fetch('/api/titles', {
                 method: 'POST',
@@ -151,9 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.status === 'success') {
                 showToast(data.message, 'success');
                 titlesInput.value = '';
-            } else {
-                showToast(data.message, 'error');
-            }
+            } else showToast(data.message, 'error');
         } catch (err) {
             showToast('Failed to save titles', 'error');
         }
@@ -199,10 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('test-bot-btn').addEventListener('click', async () => {
         try {
             showToast('Triggering manual run...', 'success');
-            const res = await fetch(`/api/test_bot?force=true&token=${window.CRON_SECRET}`, { method: 'POST' });
+            const res = await fetch(`/api/test_bot?force=true`, { method: 'POST' });
             const data = await res.json();
-            showToast(data.message, 'success');
-            setTimeout(loadActivity, 1500); // Reload after brief delay
+            showToast(data.message, data.status === 'success' ? 'success' : 'error');
+            setTimeout(loadActivity, 1500);
         } catch (e) {
             showToast('Failed to trigger bot', 'error');
         }
@@ -211,7 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- View 4: Clear Done Logic ---
     document.getElementById('clear-done-btn').addEventListener('click', async () => {
         if (!confirm('Are you sure you want to permanently delete all uploaded files?')) return;
-        
         try {
             const res = await fetch('/api/clear_done', { method: 'POST' });
             const data = await res.json();
