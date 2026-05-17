@@ -64,7 +64,13 @@ def generate_ai_content(board_name):
     if not GEMINI_API_KEY: return _fallback_content(board_name)
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        prompt = f"Create a viral Pinterest title and a short SEO description (with 5 hashtags) for a pin about '{board_name}'. Return ONLY valid JSON: {{\"title\": \"...\", \"description\": \"...\"}}"
+        prompt = (
+            f"Act as an expert Pinterest SEO copywriter. Write a highly engaging, click-worthy title (max 60 characters) "
+            f"and a descriptive, keyword-rich SEO description (max 400 characters, ending with 5 highly relevant hashtags) "
+            f"for an aesthetic Pinterest pin saved to the board: '{board_name}'. Ensure the tone is inspiring, aesthetic, and modern. "
+            f"Return ONLY valid JSON exactly matching this format: {{\"title\": \"...\", \"description\": \"...\"}} "
+            f"Do not include any markdown formatting, backticks, or extra text."
+        )
         response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=15)
         data = response.json()
         if 'candidates' not in data: return _fallback_content(board_name)
