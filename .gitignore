@@ -12,7 +12,9 @@ data/pins/*
 !data/pins/.gitkeep
 data/done/*
 !data/done/.gitkeep
-data/recent.json
+data/*.json
+data/*.db
+*.sqlite3
 
 # OS files
 .DS_Store

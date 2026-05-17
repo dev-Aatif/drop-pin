@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from urllib.parse import quote
 
 # Import database functions
-from database import log_activity, get_board_description, get_random_fallback_title
+from database import log_activity, get_board_description
 
 # Load env variables
 load_dotenv()
@@ -28,37 +28,69 @@ DONE_DIR = os.path.join(BASE_DIR, "data", "done")
 # Supported image types
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 
-def get_oldest_image():
-    """Finds the absolute oldest image file across all board folders."""
-    oldest_file = None
-    oldest_time = float('inf')
-    board_name = None
-
+def get_random_board_image():
+    """Finds an image from a randomly selected board to diversify the feed."""
     if not os.path.exists(PINS_DIR):
         return None, None
-
+        
+    valid_boards = []
+    
+    # Gather boards that have at least one valid image
     for folder in os.listdir(PINS_DIR):
         folder_path = os.path.join(PINS_DIR, folder)
         if os.path.isdir(folder_path):
-            for filename in os.listdir(folder_path):
-                if filename.startswith('.'): continue
-                ext = os.path.splitext(filename)[1].lower()
-                if ext not in IMAGE_EXTENSIONS: continue
-                    
-                file_path = os.path.join(folder_path, filename)
-                if os.path.isfile(file_path):
-                    file_time = os.path.getmtime(file_path)
-                    if file_time < oldest_time:
-                        oldest_time = file_time
-                        oldest_file = file_path
-                        board_name = folder
+            has_images = any(
+                os.path.isfile(os.path.join(folder_path, f)) 
+                and not f.startswith('.') 
+                and os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS 
+                for f in os.listdir(folder_path)
+            )
+            if has_images:
+                valid_boards.append(folder)
+                
+    if not valid_boards:
+        return None, None
+        
+    # Pick a random board
+    import random
+    board_name = random.choice(valid_boards)
+    folder_path = os.path.join(PINS_DIR, board_name)
     
+    # Get the oldest image from THAT board to maintain order within the topic
+    oldest_file = None
+    oldest_time = float('inf')
+    
+    for filename in os.listdir(folder_path):
+        if filename.startswith('.'): continue
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in IMAGE_EXTENSIONS: continue
+            
+        file_path = os.path.join(folder_path, filename)
+        if os.path.isfile(file_path):
+            file_time = os.path.getmtime(file_path)
+            if file_time < oldest_time:
+                oldest_time = file_time
+                oldest_file = file_path
+                
     return oldest_file, board_name
 
+def clean_old_done_files():
+    if not os.path.exists(DONE_DIR):
+        return
+    now = time.time()
+    for filename in os.listdir(DONE_DIR):
+        file_path = os.path.join(DONE_DIR, filename)
+        try:
+            if os.path.isfile(file_path):
+                # Check if file is older than 48 hours (48 * 3600 seconds)
+                if os.stat(file_path).st_mtime < now - (48 * 3600):
+                    os.remove(file_path)
+                    logging.info(f"Auto-cleaned old file: {filename}")
+        except Exception as e:
+            logging.error(f"Failed to clean old file {filename}: {e}")
+
 def _fallback_content(board_name):
-    title = get_random_fallback_title()
-    if not title:
-        title = f"Stunning {board_name} Ideas"
+    title = f"Stunning {board_name} Ideas"
     return title, f"Beautiful {board_name} inspiration. #aesthetic #{board_name.replace(' ', '')}"
 
 def generate_ai_content(board_name):
@@ -96,7 +128,7 @@ def run_bot_job():
         logging.error("MAKE_WEBHOOK_URL is missing from .env")
         return
 
-    image_path, board_name = get_oldest_image()
+    image_path, board_name = get_random_board_image()
     if not image_path: 
         logging.info("No images found in queue.")
         return
@@ -136,6 +168,9 @@ def run_bot_job():
         logging.error(f"Bot Exception: {e}")
         time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_activity(filename, board_name, f"System Error", title, time_str)
+        
+    # Automatically clean up files older than 48 hours in the done folder
+    clean_old_done_files()
 
 if __name__ == "__main__":
     run_bot_job()

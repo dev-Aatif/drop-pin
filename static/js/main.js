@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (targetId === 'view-queue') loadQueue();
             if (targetId === 'view-activity') loadActivity();
+            if (targetId === 'view-settings') loadStats();
         });
     });
 
@@ -227,24 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('titles-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const titlesInput = document.getElementById('title-phrases');
-        try {
-            const res = await fetch('/api/titles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ titles: titlesInput.value })
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                showToast(data.message, 'success');
-                titlesInput.value = '';
-            } else showToast(data.message, 'error');
-        } catch (err) {
-            showToast('Failed to save titles', 'error');
-        }
-    });
+
 
     // --- View 3: Activity Logic ---
     async function loadActivity() {
@@ -295,7 +279,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- View 4: Clear Done Logic ---
+    // --- View 4: Settings/Stats Logic ---
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/stats');
+            const data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById('stat-total').textContent = data.data.total_posts;
+                document.getElementById('stat-success').textContent = data.data.success_posts;
+                document.getElementById('stat-failed').textContent = data.data.failed_posts;
+                document.getElementById('stat-top').textContent = data.data.top_board || 'None';
+            }
+        } catch (e) {
+            console.error('Failed to load stats');
+        }
+    }
+
     document.getElementById('clear-done-btn').addEventListener('click', async () => {
         if (!confirm('Are you sure you want to permanently delete all uploaded files?')) return;
         try {

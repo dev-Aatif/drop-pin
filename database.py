@@ -46,14 +46,6 @@ def init_db():
         )
     ''')
     
-    # Fallback Titles
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS fallback_titles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT UNIQUE
-        )
-    ''')
-    
     conn.commit()
     conn.close()
 
@@ -66,12 +58,34 @@ def log_activity(filename, board, status, title, time_str):
         "INSERT INTO activity_log (time, filename, board, status, title) VALUES (?, ?, ?, ?, ?)",
         (time_str, filename, board, status, title)
     )
-    # Keep only the last 50 activities to save space
+    # Keep only the last 1000 activities to build accurate stats over time
     c.execute(
-        "DELETE FROM activity_log WHERE id NOT IN (SELECT id FROM activity_log ORDER BY id DESC LIMIT 50)"
+        "DELETE FROM activity_log WHERE id NOT IN (SELECT id FROM activity_log ORDER BY id DESC LIMIT 1000)"
     )
     conn.commit()
     conn.close()
+
+def get_stats():
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) as total FROM activity_log")
+    total_posts = c.fetchone()['total']
+    
+    c.execute("SELECT COUNT(*) as success FROM activity_log WHERE status LIKE '%Success%'")
+    success_posts = c.fetchone()['success']
+    
+    c.execute("SELECT board, COUNT(*) as count FROM activity_log GROUP BY board ORDER BY count DESC LIMIT 1")
+    row = c.fetchone()
+    top_board = row['board'] if row else "None"
+    
+    conn.close()
+    
+    return {
+        "total_posts": total_posts,
+        "success_posts": success_posts,
+        "failed_posts": total_posts - success_posts,
+        "top_board": top_board
+    }
 
 def get_recent_activity(limit=20):
     conn = get_db_connection()
@@ -119,31 +133,7 @@ def get_all_boards():
     conn.close()
     return [dict(row) for row in rows]
 
-def add_fallback_title(title):
-    try:
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute("INSERT INTO fallback_titles (title) VALUES (?)", (title,))
-        conn.commit()
-        conn.close()
-    except sqlite3.IntegrityError:
-        pass # Already exists
 
-def get_all_fallback_titles():
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT title FROM fallback_titles")
-    rows = c.fetchall()
-    conn.close()
-    return [row['title'] for row in rows]
-
-def get_random_fallback_title():
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT title FROM fallback_titles ORDER BY RANDOM() LIMIT 1")
-    row = c.fetchone()
-    conn.close()
-    return row['title'] if row else None
 
 if __name__ == "__main__":
     init_db()

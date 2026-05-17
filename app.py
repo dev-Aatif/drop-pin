@@ -7,7 +7,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.utils import secure_filename
 
 # Import from our new database module and bot
-from database import init_db, get_recent_activity, set_setting, get_setting, add_fallback_title, set_board_description
+from database import init_db, get_recent_activity, set_setting, get_setting, set_board_description, get_stats
 from bot import run_bot_job, PINS_DIR, DONE_DIR, IMAGE_EXTENSIONS
 
 # Ensure DB is initialized
@@ -40,9 +40,10 @@ def is_it_time_to_post():
     return time.time() >= target_time
 
 def set_next_post_time():
-    average_interval = 72 * 60
-    jitter = random.randint(-30 * 60, 30 * 60)
-    next_time = time.time() + average_interval + jitter
+    # 20-25 posts a day means an average interval of ~64 minutes
+    # Random interval between 45 and 85 minutes ensures human-like randomness
+    interval_minutes = random.randint(45, 85)
+    next_time = time.time() + (interval_minutes * 60)
     set_setting('target_timestamp', str(next_time))
 
 def get_queue_data():
@@ -151,19 +152,7 @@ def api_delete_pin():
         return jsonify({"status": "success", "message": "Pin deleted"})
     return jsonify({"status": "error", "message": "Pin not found"}), 404
 
-@app.route('/api/titles', methods=['POST'])
-@login_required
-def api_titles():
-    data = request.json
-    new_titles = data.get('titles', '')
-    if not new_titles:
-        return jsonify({"status": "error", "message": "No titles provided"}), 400
-        
-    for title in new_titles.split('\n'):
-        if title.strip():
-            add_fallback_title(title.strip())
-            
-    return jsonify({"status": "success", "message": "Titles added"})
+
 
 @app.route('/api/boards/description', methods=['GET', 'POST'])
 @login_required
@@ -188,6 +177,11 @@ def api_board_desc():
 def api_activity():
     data = get_recent_activity(20)
     return jsonify({"status": "success", "data": data})
+
+@app.route('/api/stats', methods=['GET'])
+@login_required
+def api_stats():
+    return jsonify({"status": "success", "data": get_stats()})
 
 @app.route('/api/clear_done', methods=['POST'])
 @login_required
