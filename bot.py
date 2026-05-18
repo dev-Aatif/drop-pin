@@ -115,38 +115,57 @@ def generate_ai_content(board_name):
     ]
     random_style = random.choice(styles)
     
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
-        prompt = (
-            f"Act as an expert Pinterest SEO copywriter. Write a highly engaging, click-worthy title (max 60 characters) "
-            f"and a descriptive, keyword-rich SEO description (MUST be between 350 and 480 characters long, do not make it shorter than 350 characters, and end it with exactly 5 highly relevant hashtags) "
-            f"for an aesthetic Pinterest pin saved to the board: '{display_board_name}'. {context_str} "
-            f"Write detailed sentences describing the aesthetic, mood, and visual features of the pin topic to reach the required length limit. "
-            f"Focus the tone of the description on a '{random_style}' perspective. Ensure the overall style is inspiring, aesthetic, and modern. "
-            f"Return ONLY valid JSON exactly matching this format: {{\"title\": \"...\", \"description\": \"...\"}} "
-            f"Do not include any markdown formatting, backticks, or extra text."
-        )
-        
-        # Configure temperature to maximize creativity/variety
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 1.0,
-                "topP": 0.95
-            }
+    # Cascade list of fallback models
+    models_to_try = [
+        "gemini-flash-latest",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-pro-latest"
+    ]
+    
+    prompt = (
+        f"Act as an expert Pinterest SEO copywriter. Write a highly engaging, click-worthy title (max 60 characters) "
+        f"and a descriptive, keyword-rich SEO description (MUST be between 350 and 480 characters long, do not make it shorter than 350 characters, and end it with exactly 5 highly relevant hashtags) "
+        f"for an aesthetic Pinterest pin saved to the board: '{display_board_name}'. {context_str} "
+        f"Write detailed sentences describing the aesthetic, mood, and visual features of the pin topic to reach the required length limit. "
+        f"Focus the tone of the description on a '{random_style}' perspective. Ensure the overall style is inspiring, aesthetic, and modern. "
+        f"Return ONLY valid JSON exactly matching this format: {{\"title\": \"...\", \"description\": \"...\"}} "
+        f"Do not include any markdown formatting, backticks, or extra text."
+    )
+    
+    # Configure temperature to maximize creativity/variety
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 1.0,
+            "topP": 0.95
         }
-        response = requests.post(url, json=payload, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        if 'candidates' not in data: 
-            return _fallback_content(board_name)
+    }
+    
+    for model in models_to_try:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_API_KEY}"
+            response = requests.post(url, json=payload, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+            if 'candidates' not in data: 
+                continue
+                
+            text = data['candidates'][0]['content']['parts'][0]['text'].replace('```json', '').replace('```', '').strip()
+            result = json.loads(text)
+            title = result.get('title')
+            desc = result.get('description')
+            if title and desc:
+                logging.info(f"AI Generation Succeeded using model: {model}")
+                return title, desc
+        except Exception as e:
+            logging.warning(f"AI Generation failed with model {model}: {str(e)}. Trying next fallback...")
+            continue
             
-        text = data['candidates'][0]['content']['parts'][0]['text'].replace('```json', '').replace('```', '').strip()
-        result = json.loads(text)
-        return result.get('title'), result.get('description')
-    except Exception as e:
-        logging.error(f"AI Generation Failed: {str(e)}")
-        return _fallback_content(board_name)
+    # If all models fail, resort to fallback hardcoded content
+    logging.error("All Gemini API models failed or quota exceeded. Falling back to default text.")
+    return _fallback_content(board_name)
 
 def run_bot_job():
     logging.info("Starting Pinterest bot job via Make.com Bridge...")
