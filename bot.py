@@ -107,17 +107,35 @@ def generate_ai_content(board_name):
     board_desc = get_board_description(board_name)
     context_str = f"The context/description of this board is: '{board_desc}'." if board_desc else ""
     
+    # Injected random variation to prevent duplicate copy
+    styles = [
+        "minimalist elegance", "modern details", "bold statement", "warm tones", 
+        "airy & light", "moody & raw", "sophisticated textures", "creative angles",
+        "timeless layout", "inspiring vibes", "unique elements", "artistic flow"
+    ]
+    random_style = random.choice(styles)
+    
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             f"Act as an expert Pinterest SEO copywriter. Write a highly engaging, click-worthy title (max 60 characters) "
             f"and a descriptive, keyword-rich SEO description (MUST be between 350 and 480 characters long, do not make it shorter than 350 characters, and end it with exactly 5 highly relevant hashtags) "
-            f"for an aesthetic Pinterest pin saved to the board: '{display_board_name}'. {context_str} Ensure the tone is inspiring, aesthetic, and modern. "
+            f"for an aesthetic Pinterest pin saved to the board: '{display_board_name}'. {context_str} "
             f"Write detailed sentences describing the aesthetic, mood, and visual features of the pin topic to reach the required length limit. "
+            f"Focus the tone of the description on a '{random_style}' perspective. Ensure the overall style is inspiring, aesthetic, and modern. "
             f"Return ONLY valid JSON exactly matching this format: {{\"title\": \"...\", \"description\": \"...\"}} "
             f"Do not include any markdown formatting, backticks, or extra text."
         )
-        response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=15)
+        
+        # Configure temperature to maximize creativity/variety
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 1.0,
+                "topP": 0.95
+            }
+        }
+        response = requests.post(url, json=payload, timeout=15)
         response.raise_for_status()
         data = response.json()
         if 'candidates' not in data: 
