@@ -205,15 +205,15 @@ def run_bot_job():
             os.makedirs(DONE_DIR, exist_ok=True)
             done_path = os.path.join(DONE_DIR, done_filename)
             os.rename(image_path, done_path)
-            log_activity(filename, board_name, "Success", title, time_str)
+            log_activity(filename, board_name, "Success", title, description, time_str)
         else:
             logging.error(f"Make.com Error: {response.status_code}")
-            log_activity(filename, board_name, f"Make.com Error: {response.status_code}", title, time_str)
+            log_activity(filename, board_name, f"Make.com Error: {response.status_code}", title, description, time_str)
             
     except Exception as e:
         logging.error(f"Bot Exception: {e}")
         time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_activity(filename, board_name, f"System Error", title, time_str)
+        log_activity(filename, board_name, f"System Error", title, description, time_str)
         
     # Automatically clean up files older than 48 hours in the done folder
     clean_old_done_files()

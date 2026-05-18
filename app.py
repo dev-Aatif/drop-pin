@@ -185,10 +185,47 @@ def api_activity():
     data = get_recent_activity(20)
     return jsonify({"status": "success", "data": data})
 
+def get_storage_usage():
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(BASE_DIR):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+    return total_size
+
 @app.route('/api/stats', methods=['GET'])
 @login_required
 def api_stats():
-    return jsonify({"status": "success", "data": get_stats()})
+    db_stats = get_stats()
+    
+    # Calculate queue stats
+    total_queued = 0
+    queue_breakdown = {}
+    if os.path.exists(PINS_DIR):
+        for board in os.listdir(PINS_DIR):
+            board_path = os.path.join(PINS_DIR, board)
+            if os.path.isdir(board_path):
+                files = [f for f in os.listdir(board_path) if os.path.isfile(os.path.join(board_path, f))]
+                queue_breakdown[board] = len(files)
+                total_queued += len(files)
+                
+    # Calculate storage stats
+    storage_bytes = get_storage_usage()
+    storage_mb = storage_bytes / (1024 * 1024)
+    storage_percent = min(100, (storage_mb / 512.0) * 100)
+    
+    data = {
+        **db_stats,
+        "total_queued": total_queued,
+        "queue_breakdown": queue_breakdown,
+        "storage": {
+            "used_mb": round(storage_mb, 2),
+            "total_mb": 512,
+            "percent": round(storage_percent, 1)
+        }
+    }
+    return jsonify({"status": "success", "data": data})
 
 @app.route('/api/clear_done', methods=['POST'])
 @login_required

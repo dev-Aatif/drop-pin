@@ -26,9 +26,16 @@ def init_db():
             filename TEXT,
             board TEXT,
             status TEXT,
-            title TEXT
+            title TEXT,
+            description TEXT
         )
     ''')
+    
+    # Add column for older databases
+    try:
+        c.execute("ALTER TABLE activity_log ADD COLUMN description TEXT")
+    except sqlite3.OperationalError:
+        pass
     
     # Bot Settings (Key-Value)
     c.execute('''
@@ -51,12 +58,12 @@ def init_db():
 
 # --- Helper Functions ---
 
-def log_activity(filename, board, status, title, time_str):
+def log_activity(filename, board, status, title, description, time_str):
     conn = get_db_connection()
     c = conn.cursor()
     c.execute(
-        "INSERT INTO activity_log (time, filename, board, status, title) VALUES (?, ?, ?, ?, ?)",
-        (time_str, filename, board, status, title)
+        "INSERT INTO activity_log (time, filename, board, status, title, description) VALUES (?, ?, ?, ?, ?, ?)",
+        (time_str, filename, board, status, title, description)
     )
     # Keep only the last 1000 activities to build accurate stats over time
     c.execute(

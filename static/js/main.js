@@ -159,22 +159,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    boardSelect.addEventListener('change', async (e) => {
-        const boardName = e.target.value;
-        if(boardName) {
-            boardDesc.value = 'Loading...';
-            try {
-                const res = await fetch(`/api/boards/description?board_name=${encodeURIComponent(boardName)}`);
-                const data = await res.json();
-                if(data.status === 'success') {
-                    boardDesc.value = data.data.description;
-                } else {
-                    boardDesc.value = '';
-                }
-            } catch(e) {
+    let boardDescTimeout;
+    const fetchBoardContext = async (boardName) => {
+        if(!boardName) return;
+        boardDesc.value = 'Loading...';
+        try {
+            const res = await fetch(`/api/boards/description?board_name=${encodeURIComponent(boardName)}`);
+            const data = await res.json();
+            if(data.status === 'success' && data.data.description) {
+                boardDesc.value = data.data.description;
+            } else {
                 boardDesc.value = '';
             }
+        } catch(e) {
+            boardDesc.value = '';
         }
+    };
+
+    boardSelect.addEventListener('change', (e) => fetchBoardContext(e.target.value));
+    boardSelect.addEventListener('input', (e) => {
+        clearTimeout(boardDescTimeout);
+        boardDescTimeout = setTimeout(() => fetchBoardContext(e.target.value), 600);
     });
 
     document.getElementById('save-desc-btn').addEventListener('click', async () => {
@@ -261,6 +266,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- View 3: Activity Logic ---
+    const actModal = document.getElementById('activity-modal');
+    const actModalClose = document.getElementById('close-activity-modal');
+    const actModalContent = document.getElementById('activity-modal-content');
+    
+    window.openActivityModal = function(index) {
+        if (!window.activityData || !window.activityData[index]) return;
+        const item = window.activityData[index];
+        
+        let formattedTime = item.time;
+        try {
+            const date = new Date(item.time.replace(' ', 'T'));
+            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+            formattedTime = date.toLocaleString('en-US', options);
+        } catch(e) {}
+        
+        actModalContent.innerHTML = `
+            <div style="width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 8px; border: 1px solid var(--border-color);">
+                <img src="/done/${encodeURIComponent(item.filename)}" alt="Thumbnail" style="width: 100%; height: 240px; object-fit: contain; background: #000;" onerror="this.src=''">
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--text-main); margin-bottom: 4px;">${item.title || 'No Title'}</h4>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;">
+                <span><i class="fa-solid fa-folder-open" style="width: 16px;"></i> ${item.board}</span>
+                <span><i class="fa-regular fa-clock" style="width: 16px;"></i> ${formattedTime}</span>
+            </div>
+            <div style="background: var(--bg-main); padding: 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; color: var(--text-main); max-height: 150px; overflow-y: auto;">
+                ${item.description ? item.description.replace(/\n/g, '<br>') : 'No description available.'}
+            </div>
+            <div style="text-align: right; margin-top: 8px;">
+                <span style="font-size: 0.8rem; padding: 4px 10px; border-radius: 12px; background: ${item.status.toLowerCase().includes('success') ? 'var(--success)' : 'var(--danger)'}; color: #000; font-weight: 700;">${item.status}</span>
+            </div>
+        `;
+        actModal.classList.add('active');
+    };
+    
+    if (actModalClose) {
+        actModalClose.addEventListener('click', () => {
+            actModal.classList.remove('active');
+        });
+    }
+
     async function loadActivity() {
         const container = document.getElementById('activity-container');
         try {
@@ -273,13 +318,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             container.innerHTML = '';
-            data.data.forEach(item => {
+            window.activityData = data.data; // Store globally for modal access
+            
+            data.data.forEach((item, index) => {
                 const isSuccess = item.status.toLowerCase().includes('success');
                 const iconClass = isSuccess ? 'success' : 'error';
                 const iconName = isSuccess ? 'fa-check' : 'fa-xmark';
                 
                 const html = `
-                    <div class="activity-item">
+                    <div class="activity-item" style="cursor: pointer;" onclick="openActivityModal(${index})">
                         <div class="activity-icon ${iconClass}">
                             <i class="fa-solid ${iconName}"></i>
                         </div>
@@ -316,9 +363,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.status === 'success') {
                 document.getElementById('stat-total').textContent = data.data.total_posts;
-                document.getElementById('stat-success').textContent = data.data.success_posts;
-                document.getElementById('stat-failed').textContent = data.data.failed_posts;
-                document.getElementById('stat-top').textContent = data.data.top_board || 'None';
+                document.getElementById('stat-queued').textContent = data.data.total_queued;
+                
+                // Storage Logic
+                const storageFill = document.getElementById('stat-storage-fill');
+                if(storageFill) {
+                    storageFill.style.width = `${data.data.storage.percent}%`;
+                    if (data.data.storage.percent > 85) storageFill.style.background = 'var(--danger)';
+                    document.getElementById('stat-storage-used').textContent = `${data.data.storage.used_mb} MB Used`;
+                }
+                
+                // Queue Breakdown Logic
+                const qb = document.getElementById('stat-queue-breakdown');
+                if(qb) {
+                    qb.innerHTML = '';
+                    if (Object.keys(data.data.queue_breakdown).length === 0) {
+                        qb.innerHTML = '<div class="text-muted">No images queued.</div>';
+                    } else {
+                        for (const [board, count] of Object.entries(data.data.queue_breakdown)) {
+                            qb.innerHTML += `<div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color: var(--text-main);">${board}</span><span style="color: var(--accent); font-weight: bold;">${count}</span></div>`;
+                        }
+                    }
+                }
             }
         } catch (e) {
             console.error('Failed to load stats');

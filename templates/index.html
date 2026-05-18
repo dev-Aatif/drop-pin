@@ -116,23 +116,34 @@
                     </div>
                     
                     <div class="glass-card" style="margin-bottom: 24px;">
-                        <h3><i class="fa-solid fa-chart-simple"></i> Analytics</h3>
+                        <h3><i class="fa-solid fa-hard-drive"></i> Server Storage</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">PythonAnywhere 512MB Quota</p>
+                        <div class="progress-track" style="height: 12px; margin-bottom: 8px;">
+                            <div id="stat-storage-fill" class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600;">
+                            <span id="stat-storage-used" style="color: var(--text-main);">0 MB Used</span>
+                            <span style="color: var(--text-muted);">512 MB Total</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="margin-bottom: 24px;">
+                        <h3><i class="fa-solid fa-chart-pie"></i> Queue & Posts</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
                             <div style="background: var(--bg-main); padding: 16px; border-radius: var(--radius-md); text-align: center;">
                                 <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);" id="stat-total">0</div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Posts</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Posted</div>
                             </div>
                             <div style="background: var(--bg-main); padding: 16px; border-radius: var(--radius-md); text-align: center;">
-                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--success);" id="stat-success">0</div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Successful</div>
+                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent);" id="stat-queued">0</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Queued</div>
                             </div>
-                            <div style="background: var(--bg-main); padding: 16px; border-radius: var(--radius-md); text-align: center;">
-                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--danger);" id="stat-failed">0</div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Failed</div>
-                            </div>
-                            <div style="background: var(--bg-main); padding: 16px; border-radius: var(--radius-md); text-align: center;">
-                                <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; line-height: 1.5rem;" id="stat-top">None</div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Top Board</div>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Queued per Board</h4>
+                            <div id="stat-queue-breakdown" style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
+                                <div class="text-muted">Loading...</div>
                             </div>
                         </div>
                     </div>
@@ -179,6 +190,19 @@
                 </div>
                 <div id="modal-grid" class="masonry-grid">
                     <!-- Images injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Overlay for Activity Details -->
+        <div id="activity-modal" class="modal-overlay">
+            <div class="modal-content glass-card">
+                <div class="modal-header">
+                    <h3 style="margin-bottom:0;"><i class="fa-brands fa-pinterest" style="color: var(--danger);"></i> Pin Details</h3>
+                    <button id="close-activity-modal" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="activity-modal-content" style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                    <!-- Content injected here -->
                 </div>
             </div>
         </div>
