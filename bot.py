@@ -90,12 +90,20 @@ def clean_old_done_files():
             logging.error(f"Failed to clean old file {filename}: {e}")
 
 def _fallback_content(board_name):
-    title = f"Stunning {board_name} Ideas"
-    return title, f"Beautiful {board_name} inspiration. #aesthetic #{board_name.replace(' ', '')}"
+    clean_name = board_name.replace('_', ' ')
+    title = f"Stunning {clean_name} Ideas"
+    desc = (
+        f"Beautiful {clean_name} inspiration. A carefully curated collection of aesthetic ideas, designs, "
+        f"and style concepts. Let these visual ideas inspire your next creative project, mood board, or home update. "
+        f"Discover the best inspiration and unique creative details today. #aesthetic #{clean_name.replace(' ', '')} "
+        f"#inspiration #decor #style"
+    )
+    return title, desc
 
 def generate_ai_content(board_name):
     if not GEMINI_API_KEY: return _fallback_content(board_name)
     
+    display_board_name = board_name.replace('_', ' ')
     board_desc = get_board_description(board_name)
     context_str = f"The context/description of this board is: '{board_desc}'." if board_desc else ""
     
@@ -103,8 +111,9 @@ def generate_ai_content(board_name):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             f"Act as an expert Pinterest SEO copywriter. Write a highly engaging, click-worthy title (max 60 characters) "
-            f"and a descriptive, keyword-rich SEO description (max 400 characters, ending with 5 highly relevant hashtags) "
-            f"for an aesthetic Pinterest pin saved to the board: '{board_name}'. {context_str} Ensure the tone is inspiring, aesthetic, and modern. "
+            f"and a descriptive, keyword-rich SEO description (MUST be between 350 and 480 characters long, do not make it shorter than 350 characters, and end it with exactly 5 highly relevant hashtags) "
+            f"for an aesthetic Pinterest pin saved to the board: '{display_board_name}'. {context_str} Ensure the tone is inspiring, aesthetic, and modern. "
+            f"Write detailed sentences describing the aesthetic, mood, and visual features of the pin topic to reach the required length limit. "
             f"Return ONLY valid JSON exactly matching this format: {{\"title\": \"...\", \"description\": \"...\"}} "
             f"Do not include any markdown formatting, backticks, or extra text."
         )
@@ -146,7 +155,7 @@ def run_bot_job():
             "title": title,
             "description": f"{title}\n\n{description}",
             "image_url": image_url,
-            "board": board_name,
+            "board": board_name.replace('_', ' '),
             "link": BASE_URL
         }
         

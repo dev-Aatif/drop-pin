@@ -20,6 +20,13 @@ CRON_SECRET = os.getenv("CRON_SECRET", "")
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")
 ADMIN_PASS = os.getenv("ADMIN_PASS", "admin") # Default if not set in .env
 
+def make_safe_board_name(name):
+    """Filters board names to keep spaces and prevent path traversal."""
+    if not name:
+        return ""
+    safe = "".join(c for c in name if c.isalnum() or c in " -_").strip()
+    return " ".join(safe.split())
+
 # --- Setup Flask-Login ---
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -89,7 +96,7 @@ def api_queue():
 @app.route('/api/board/<board_name>/pins', methods=['GET'])
 @login_required
 def api_board_pins(board_name):
-    safe_board = secure_filename(board_name)
+    safe_board = make_safe_board_name(board_name)
     board_dir = os.path.join(PINS_DIR, safe_board)
     if not os.path.exists(board_dir):
         return jsonify({"status": "success", "data": []})
@@ -111,11 +118,11 @@ def api_upload():
     
     if not files or all(f.filename == '' for f in files):
         return jsonify({"status": "error", "message": "No selected file"}), 400
-        
+    
     if not board_name:
         return jsonify({"status": "error", "message": "No board selected"}), 400
         
-    safe_board = secure_filename(board_name)
+    safe_board = make_safe_board_name(board_name)
     board_dir = os.path.join(PINS_DIR, safe_board)
     os.makedirs(board_dir, exist_ok=True)
     
@@ -140,7 +147,7 @@ def api_upload():
 @login_required
 def api_delete_pin():
     data = request.json
-    board_name = secure_filename(data.get('board_name', ''))
+    board_name = make_safe_board_name(data.get('board_name', ''))
     filename = secure_filename(data.get('filename', ''))
     
     if not board_name or not filename:
@@ -221,7 +228,7 @@ def test_bot():
 @app.route('/pins/<board>/<path:filename>')
 @login_required
 def serve_pin_image(board, filename):
-    safe_board = secure_filename(board)
+    safe_board = make_safe_board_name(board)
     board_dir = os.path.join(PINS_DIR, safe_board)
     return send_from_directory(board_dir, filename)
 
