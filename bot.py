@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import random
 import logging
 import requests
 from datetime import datetime
@@ -52,7 +53,6 @@ def get_random_board_image():
         return None, None
         
     # Pick a random board
-    import random
     board_name = random.choice(valid_boards)
     folder_path = os.path.join(PINS_DIR, board_name)
     
@@ -116,7 +116,7 @@ def generate_ai_content(board_name):
     random_style = random.choice(styles)
     
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             f"Act as an expert Pinterest SEO copywriter. Write a highly engaging, click-worthy title (max 60 characters) "
             f"and a descriptive, keyword-rich SEO description (MUST be between 350 and 480 characters long, do not make it shorter than 350 characters, and end it with exactly 5 highly relevant hashtags) "
