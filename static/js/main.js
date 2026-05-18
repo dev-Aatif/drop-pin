@@ -194,11 +194,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    document.getElementById('upload-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const btn = document.getElementById('upload-btn');
+        const progressContainer = document.getElementById('upload-progress-container');
+        const progressFill = document.getElementById('upload-progress-fill');
+        const progressText = document.getElementById('upload-progress-text');
+        
         btn.disabled = true;
         btn.textContent = 'Uploading...';
+        progressContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
 
         const formData = new FormData();
         for(let i = 0; i < fileInput.files.length; i++) {
@@ -206,26 +213,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         formData.append('board_name', boardSelect.value);
 
-        try {
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/upload', true);
+
+        // Upload progress listener
+        xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+                const percent = Math.round((event.loaded / event.total) * 100);
+                progressFill.style.width = `${percent}%`;
+                progressText.textContent = `${percent}%`;
+            }
+        });
+
+        xhr.onload = () => {
+            let data = {};
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch(err) {}
+
+            if (xhr.status === 200 && data.status === 'success') {
                 showToast(data.message, 'success');
                 fileInput.value = '';
                 fileNameDisplay.textContent = 'No files chosen';
                 fileNameDisplay.style.color = 'var(--text-muted)';
             } else {
-                showToast(data.message, 'error');
+                showToast(data.message || 'Upload failed', 'error');
             }
-        } catch (err) {
-            showToast('Upload failed', 'error');
-        } finally {
+            
+            // Clean up state
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+            }, 1000);
             btn.disabled = false;
             btn.textContent = 'Upload to Queue';
-        }
+        };
+
+        xhr.onerror = () => {
+            showToast('Upload failed', 'error');
+            progressContainer.style.display = 'none';
+            btn.disabled = false;
+            btn.textContent = 'Upload to Queue';
+        };
+
+        xhr.send(formData);
     });
 
 

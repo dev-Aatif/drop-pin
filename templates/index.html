@@ -69,13 +69,25 @@
                             </div>
 
                             <div class="form-group file-upload-wrapper">
-                                <input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp" multiple required>
+                                <input type="file" id="image-upload" accept="image/*" multiple required>
                                 <label for="image-upload" class="file-upload-label">
                                     <i class="fa-solid fa-images"></i>
                                     <span>Choose Images</span>
                                 </label>
                                 <span id="file-name">No files chosen</span>
                             </div>
+                            
+                            <!-- Progress Bar Container -->
+                            <div id="upload-progress-container" style="display: none; margin-bottom: 20px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">
+                                    <span>Uploading...</span>
+                                    <span id="upload-progress-text">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="upload-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            
                             <button type="submit" class="btn btn-primary" id="upload-btn">Upload to Queue</button>
                         </form>
                     </div>
